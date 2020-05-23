@@ -1,0 +1,107 @@
+# -*- mode: org; buffer-read-only: nil; truncate-lines: nil; fill-column: 84 -*-
+#+STARTUP: showall
+#+OPTIONS: ^:{} toc:nil num:nil date:nil author:nil
+#+BIND: org-html-toplevel-hlevel 3
+#+TITLE: centos7.json
+
+* {{{title}}}
+
+  - box: centos7-7.6.1810.2005.1
+  - source iso: CentOS-7-x86_64-DVD-1810.iso
+  - UEFI ICH9 VMSVGA
+  - hard_drive_interface: sata
+  - iso_interface: sata
+  - メモリ 512MB
+  - ディスク 64GB
+  - GPT regular ext4
+  - アップデートなし
+  - SELinux 無効
+  - ファイヤーウォール無効
+
+  - hostname について:
+    ホスト名を vagrant にすると vagrant ssh できなくなる。
+    ホスト名が localhost なら大丈夫。
+
+    localhost でうまくいくのは localhost が /etc/hosts に登録されているためか?
+    vagrant でうまくいかないのは ssh が自ホスト名の名前解決を必要としているためか?
+    ネットワーク・インターフェイスの設定がうまくいっていなかったためか?
+
+  - ネットワークのインターフェイス名について
+    Predictable Network Interface Names にするために:
+    - 1. boot_command でインストーラー起動に net.ifnames=1 を指定する。
+    - 2. kickstart で、パッケージ biosdevname のインストールを明示する。
+    - 3. kickstart の bootloader --append に net.ifnames=0 biosdevname=0 があれば除去する。
+
+  ディスクレイアウト
+  #+BEGIN_EXAMPLE
+# gdisk -l /dev/sda
+GPT fdisk (gdisk) version 0.8.10
+
+Partition table scan:
+  MBR: protective
+  BSD: not present
+  APM: not present
+  GPT: present
+
+Found valid GPT with protective MBR; using GPT.
+Disk /dev/sda: 134217728 sectors, 64.0 GiB
+Logical sector size: 512 bytes
+Disk identifier (GUID): E72F05C0-7739-4F20-98A3-FF9966A5AA11
+Partition table holds up to 128 entries
+First usable sector is 34, last usable sector is 134217694
+Partitions will be aligned on 2048-sector boundaries
+Total free space is 4029 sectors (2.0 MiB)
+
+Number  Start (sector)    End (sector)  Size       Code  Name
+   1            2048         1026047   500.0 MiB   EF00  EFI System Partition
+   2         1026048         2050047   500.0 MiB   8200  
+   3         2050048       134215679   63.0 GiB    0700  
+
+# lsblk -f
+NAME   FSTYPE LABEL UUID                                 MOUNTPOINT
+sda                                                      
+|-sda1 vfat         3C12-C3CB                            /boot/efi
+|-sda2 swap         0d08015b-53b5-4ec0-ba4d-84ba9adab312 [SWAP]
+`-sda3 ext4         de66ae90-fcc3-4e15-8909-691ccb13ea87 /
+  #+END_EXAMPLE
+
+  ディスクレイアウト(オリジナル)
+  #+BEGIN_EXAMPLE
+# gdisk -l /dev/sda
+GPT fdisk (gdisk) version 0.8.10
+
+Partition table scan:
+  MBR: protective
+  BSD: not present
+  APM: not present
+  GPT: present
+
+Found valid GPT with protective MBR; using GPT.
+Disk /dev/sda: 134217728 sectors, 64.0 GiB
+Logical sector size: 512 bytes
+Disk identifier (GUID): 6F8B887A-E33B-479D-AE29-264A064BFA1C
+Partition table holds up to 128 entries
+First usable sector is 34, last usable sector is 134217694
+Partitions will be aligned on 2048-sector boundaries
+Total free space is 6077 sectors (3.0 MiB)
+
+Number  Start (sector)    End (sector)  Size       Code  Name
+   1            2048          411647   200.0 MiB   EF00  EFI System Partition
+   2          411648         2508799   1024.0 MiB  0700  
+   3         2508800         4607999   1.0 GiB     8200  
+   4         4608000        91693055   41.5 GiB    0700  
+   5        91693056       134213631   20.3 GiB    0700  
+
+# lsblk -f
+NAME   FSTYPE LABEL UUID                                 MOUNTPOINT
+sda                                                      
+|-sda1 vfat         15CA-D4FB                            /boot/efi
+|-sda2 ext4         4d928b21-cfb5-4b84-bd1e-8a3ccf6a18eb /boot
+|-sda3 swap         3aaf4f92-2a0e-4b99-ad5f-9b6dd58d8b0c [SWAP]
+|-sda4 ext4         d70942d9-26ec-47e3-8723-f06f9ceaf6b8 /
+`-sda5 ext4         0dd213d9-a378-43f1-8b4e-ebafd9bf40d4 /home
+  #+END_EXAMPLE
+
+# Local Variables:
+# compile-command: "packer build -color=false -force -var-file=centos-7.6.1810.json centos.json"
+# End:
